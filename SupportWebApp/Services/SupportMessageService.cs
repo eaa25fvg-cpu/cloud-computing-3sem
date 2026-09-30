@@ -23,7 +23,24 @@ public sealed class SupportMessageService : IDisposable
 
     public async Task AddAsync(SupportMessage message)
     {
-        await _container.CreateItemAsync(message, new PartitionKey(message.Id));
+        if (message.Category is null)
+            throw new ArgumentException("Supporthenvendelsen skal have en kategori.", nameof(message));
+
+        await _container.CreateItemAsync(message, new PartitionKey(message.Category.Value.ToString()));
+    }
+
+    public async Task<List<SupportMessage>> GetAllAsync()
+    {
+        var messages = new List<SupportMessage>();
+        using var iterator = _container.GetItemQueryIterator<SupportMessage>("SELECT * FROM c");
+
+        while (iterator.HasMoreResults)
+        {
+            var page = await iterator.ReadNextAsync();
+            messages.AddRange(page);
+        }
+
+        return messages.OrderByDescending(message => message.SubmittedAt).ToList();
     }
 
     public void Dispose() => _client.Dispose();

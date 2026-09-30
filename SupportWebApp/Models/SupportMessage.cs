@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace SupportWebApp.Models;
 
@@ -37,6 +38,8 @@ public class SupportMessage
     public string Description { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Vælg en kategori.")]
+    [JsonProperty("category")]
+    [JsonConverter(typeof(StringEnumConverter))]
     public SupportCategory? Category { get; set; }
 
     public DateTimeOffset SubmittedAt { get; set; } = DateTimeOffset.UtcNow;

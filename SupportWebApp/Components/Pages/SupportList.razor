@@ -1,0 +1,88 @@
+@page "/support"
+@rendermode InteractiveServer
+@using SupportWebApp.Models
+@using SupportWebApp.Services
+@inject SupportMessageService SupportMessageService
+@inject ILogger<SupportList> Logger
+
+<PageTitle>Supporthenvendelser</PageTitle>
+
+<h1>Supporthenvendelser</h1>
+<p><a href="/support/create">Opret en ny henvendelse</a></p>
+
+@if (loading)
+{
+    <p>Henter henvendelser...</p>
+}
+else if (loadFailed)
+{
+    <p class="alert alert-danger" role="alert">Henvendelserne kunne ikke hentes. Prøv igen senere.</p>
+}
+else if (messages.Count == 0)
+{
+    <p>Der er endnu ingen henvendelser.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Modtaget</th>
+                    <th>Navn</th>
+                    <th>E-mail</th>
+                    <th>Telefon</th>
+                    <th>Kategori</th>
+                    <th>Beskrivelse</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var message in messages)
+                {
+                    <tr>
+                        <td>@message.SubmittedAt.ToLocalTime().ToString("g")</td>
+                        <td>@message.Name</td>
+                        <td>@message.Email</td>
+                        <td>@message.PhoneNumber</td>
+                        <td>@CategoryName(message.Category)</td>
+                        <td>@message.Description</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<SupportMessage> messages = [];
+    private bool loading = true;
+    private bool loadFailed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            messages = await SupportMessageService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Kunne ikke hente supporthenvendelserne.");
+            loadFailed = true;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private static string CategoryName(SupportCategory? category) => category switch
+    {
+        SupportCategory.TechnicalQuestionBeforePurchase => "Teknisk spørgsmål før køb",
+        SupportCategory.SpareParts => "Reservedele",
+        SupportCategory.ProductSuggestion => "Forslag til cykel eller funktioner",
+        SupportCategory.FindDealer => "Find nærmeste forhandler",
+        SupportCategory.RequestCatalog => "Få det nyeste katalog",
+        SupportCategory.Other => "Andet",
+        _ => "Ukendt"
+    };
+}

@@ -1,0 +1,103 @@
+@page "/support/create"
+@rendermode InteractiveServer
+@using SupportWebApp.Models
+@using SupportWebApp.Services
+@inject SupportMessageService SupportMessageService
+@inject ILogger<CreateSupport> Logger
+
+<PageTitle>Opret supporthenvendelse</PageTitle>
+
+<h1>Opret supporthenvendelse</h1>
+<p><a href="/support">Se alle henvendelser</a></p>
+
+@if (saved)
+{
+    <p class="alert alert-success" role="status">Din henvendelse er oprettet.</p>
+}
+
+@if (saveFailed)
+{
+    <p class="alert alert-danger" role="alert">Henvendelsen kunne ikke gemmes. Prøv igen senere.</p>
+}
+
+<EditForm Model="message" OnValidSubmit="CreateAsync" FormName="create-support">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label class="form-label" for="name">Navn</label>
+        <InputText id="name" class="form-control" @bind-Value="message.Name" />
+        <ValidationMessage For="@(() => message.Name)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="email">E-mail</label>
+        <InputText id="email" type="email" class="form-control" @bind-Value="message.Email" />
+        <ValidationMessage For="@(() => message.Email)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="phone">Telefonnummer</label>
+        <InputText id="phone" type="tel" class="form-control" @bind-Value="message.PhoneNumber" />
+        <ValidationMessage For="@(() => message.PhoneNumber)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="category">Kategori</label>
+        <InputSelect id="category" class="form-select" @bind-Value="message.Category">
+            <option value="">Vælg kategori</option>
+            <option value="TechnicalQuestionBeforePurchase">Teknisk spørgsmål før køb</option>
+            <option value="SpareParts">Reservedele</option>
+            <option value="ProductSuggestion">Forslag til cykel eller funktioner</option>
+            <option value="FindDealer">Find nærmeste forhandler</option>
+            <option value="RequestCatalog">Få det nyeste katalog</option>
+            <option value="Other">Andet</option>
+        </InputSelect>
+        <ValidationMessage For="@(() => message.Category)" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label" for="description">Beskrivelse</label>
+        <InputTextArea id="description" class="form-control" rows="5" @bind-Value="message.Description" />
+        <ValidationMessage For="@(() => message.Description)" />
+    </div>
+
+    <button type="submit" class="btn btn-primary" disabled="@saving">Opret henvendelse</button>
+</EditForm>
+
+@code {
+    [SupplyParameterFromForm(FormName = "create-support")]
+    private SupportMessage message { get; set; } = default!;
+    private bool saving;
+    private bool saved;
+    private bool saveFailed;
+
+    protected override void OnInitialized() => message ??= new SupportMessage();
+
+    private async Task CreateAsync()
+    {
+        if (saving) return;
+
+        saving = true;
+        saved = false;
+        saveFailed = false;
+
+        try
+        {
+            message.Id = Guid.NewGuid().ToString();
+            message.SubmittedAt = DateTimeOffset.UtcNow;
+            await SupportMessageService.AddAsync(message);
+            message = new SupportMessage();
+            saved = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Kunne ikke gemme supporthenvendelsen.");
+            saveFailed = true;
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+}
