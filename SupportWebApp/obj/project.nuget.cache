@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "sj2uxfHEbjU=",
+  "success": true,
+  "projectFilePath": "/Users/frederikgjortz/src/studie/3-semester/cloud-computing/afleveringer/SupportWebApp/SupportWebApp.csproj",
+  "expectedPackageFiles": [
+    "/Users/frederikgjortz/.nuget/packages/microsoft.aspnetcore.app.internal.assets/10.0.7/microsoft.aspnetcore.app.internal.assets.10.0.7.nupkg.sha512"
+  ],
+  "logs": []
+}
