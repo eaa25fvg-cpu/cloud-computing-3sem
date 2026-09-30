@@ -13,27 +13,30 @@ dotnet run
 
 Siden åbnes på `http://localhost:5163`. Man opretter en henvendelse på `/support/create` og ser dem på `/support`.
 
-## Opret databasen med Azure CLI
+## Sådan oprettede vi databasen
 
-Ret variablerne, især kontonavnet, som skal være unikt. Disse kommandoer opretter Azure-ressourcer, der kan koste penge.
+Vi oprettede en resource group i `polandcentral` og derefter en Cosmos DB-konto med free tier. På kontoen lavede vi databasen `IBasSupportDB` og containeren `ibassupport`. Containeren bruger `/category` som partition key.
+
+Vi brugte disse Azure CLI-kommandoer:
 
 ```bash
-az login
+export DBACCOUNT="ibas-db-account"-$RANDOM
+export RESGRP="IBasSupportRG"
+az group create --name IBasSupportRG --location polandcentral
+az cosmosdb create --name $DBACCOUNT --resource-group $RESGRP \
+  --enable-free-tier true
 
-RESOURCE_GROUP="ibas-support-rg"
-LOCATION="polandcentral"
-COSMOS_ACCOUNT="<unikt-kontonavn>"
+export DATABASE="IBasSupportDB"
+az cosmosdb sql database create --account-name $DBACCOUNT \
+  --resource-group $RESGRP --name $DATABASE
 
-az group create -n "$RESOURCE_GROUP" -l "$LOCATION"
-az cosmosdb create -n "$COSMOS_ACCOUNT" -g "$RESOURCE_GROUP" \
-  --locations regionName="$LOCATION" failoverPriority=0 isZoneRedundant=False
-az cosmosdb sql database create -a "$COSMOS_ACCOUNT" -g "$RESOURCE_GROUP" \
-  -n IBasSupportDB
-az cosmosdb sql container create -a "$COSMOS_ACCOUNT" -g "$RESOURCE_GROUP" \
-  -d IBasSupportDB -n ibassupport --partition-key-path "/category" --throughput 400
+export CONTAINER="ibassupport"
+az cosmosdb sql container create --account-name $DBACCOUNT \
+  --resource-group $RESGRP --database-name $DATABASE \
+  --name $CONTAINER --partition-key-path "/category"
 ```
 
-Connection string kan findes med `az cosmosdb keys list -n "$COSMOS_ACCOUNT" -g "$RESOURCE_GROUP" --type connection-strings`. Den skal gemmes som user-secret med kommandoen ovenfor. Database- og containernavnet i `appsettings.json` skal passe med navnene i kommandoerne. Partition key skal være `/category`.
+Vores konto fik navnet `ibas-db-account-26943`. Database- og containernavnet står i `appsettings.json`, og connection string er gemt som user-secret.
 
 ## Status
 
