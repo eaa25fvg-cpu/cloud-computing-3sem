@@ -10,6 +10,18 @@
 <h1>Supporthenvendelser</h1>
 <p><a href="/support/create">Opret en ny henvendelse</a></p>
 
+@* AI: Kategorifilteret genindlæser listen, når valget ændres. *@
+<div class="mb-3">
+    <label for="category-filter" class="form-label">Kategori</label>
+    <select id="category-filter" class="form-select" value="@selectedCategory" @onchange="OnCategoryChangedAsync">
+        <option value="">Alle</option>
+        @foreach (var category in Enum.GetValues<SupportCategory>())
+        {
+            <option value="@category">@CategoryName(category)</option>
+        }
+    </select>
+</div>
+
 @if (loading)
 {
     <p>Henter henvendelser...</p>
@@ -54,15 +66,33 @@ else
 }
 
 @code {
+    // AI: Tomt valg betyder alle kategorier; ellers bruges den valgte partition.
+    private string selectedCategory = string.Empty;
     private List<SupportMessage> messages = [];
     private bool loading = true;
     private bool loadFailed;
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadMessagesAsync();
+    }
+
+    // AI: Vælg den tilsvarende serviceforespørgsel og vis indlæsnings- eller fejlstatus.
+    private async Task OnCategoryChangedAsync(ChangeEventArgs args)
+    {
+        selectedCategory = args.Value?.ToString() ?? string.Empty;
+        await LoadMessagesAsync();
+    }
+
+    private async Task LoadMessagesAsync()
+    {
+        loading = true;
+        loadFailed = false;
         try
         {
-            messages = await SupportMessageService.GetAllAsync();
+            messages = Enum.TryParse<SupportCategory>(selectedCategory, out var category)
+                ? await SupportMessageService.GetByCategoryAsync(category)
+                : await SupportMessageService.GetAllAsync();
         }
         catch (Exception ex)
         {

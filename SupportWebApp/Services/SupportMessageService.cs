@@ -43,5 +43,29 @@ public sealed class SupportMessageService : IDisposable
         return messages.OrderByDescending(message => message.SubmittedAt).ToList();
     }
 
+    // guide: Hent kun dokumenter fra den valgte kategoris partition.
+    public async Task<List<SupportMessage>> GetByCategoryAsync(SupportCategory category)
+    {
+        var categoryValue = category.ToString();
+        var queryDefinition = new QueryDefinition(
+            "SELECT * FROM c WHERE c.category = @category ORDER BY c.SubmittedAt DESC")
+            .WithParameter("@category", categoryValue);
+        using var iterator = _container.GetItemQueryIterator<SupportMessage>(
+            queryDefinition,
+            requestOptions: new QueryRequestOptions
+            {
+                PartitionKey = new PartitionKey(categoryValue)
+            });
+
+        var messages = new List<SupportMessage>();
+        while (iterator.HasMoreResults)
+        {
+            var page = await iterator.ReadNextAsync();
+            messages.AddRange(page);
+        }
+
+        return messages;
+    }
+
     public void Dispose() => _client.Dispose();
 }
